@@ -44,15 +44,25 @@ This repository implements polyp detection using VGG19 with Global Average Pooli
 ## Dataset Structure
 
 /scratch/s3777006/CP-CHILD/
+
    Experiment-centralized_learning/
+   
        Train/{Polyp, Non-Polyp}/
+       
        Test/{Polyp, Non-Polyp}/
+       
   Experiment-federated_learning/
+  
        Client1/Train/{Polyp, Non-Polyp}
+       
        Client2/Train/{Polyp, Non-Polyp}
+       
        Client3/Train/{Polyp, Non-Polyp}
+       
        Test/{Polyp, Non-Polyp}
+       
    Experiment partitions according the file structure
+   
 ......................
 
 ## Outputs
