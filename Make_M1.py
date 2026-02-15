@@ -10,13 +10,11 @@ A_R = 0.65
 A_G = 1.15
 A_B = 1.10
 
-# MAIN LOOP
 for split in ["Train", "Test"]:
     for cls in ["Polyp", "Non-Polyp"]:
         src_dir = SRC_ROOT / split / cls
         dst_dir = DST_ROOT / split / cls
 
-        # make sure output directory exists
         dst_dir.mkdir(parents=True, exist_ok=True)
 
         files = sorted(src_dir.glob("*.jpg"))
@@ -31,7 +29,6 @@ for split in ["Train", "Test"]:
             arr[..., 1] *= A_G  # G
             arr[..., 2] *= A_B  # B
 
-            # back to uint8
             arr = np.clip(arr, 0.0, 1.0)
             arr = (arr * 255.0).astype(np.uint8)
 
@@ -39,7 +36,6 @@ for split in ["Train", "Test"]:
             out_img = Image.fromarray(arr, mode="RGB")
             out_img.save(dst_dir / src_path.name, format="JPEG")
 
-            # minimal progress output
             if idx % 500 == 0:
                 print(f"[M1] {split}/{cls}: {idx}/{len(files)} images processed")
 
