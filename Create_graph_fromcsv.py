@@ -2,13 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 from matplotlib.ticker import FormatStrFormatter
-# ===============================
 # Global plot style (set once)
-# ===============================
 plt.rcParams.update({
     "figure.figsize": (6, 4),
     "font.size": 12,
-    "axes.labelsize": 14,      # larger axis labels
+    "axes.labelsize": 14,      
     "axes.titlesize": 12,
     "legend.fontsize": 10,
     "lines.linewidth": 2,
@@ -25,7 +23,7 @@ def plot_training_loss(csv_path, output_path):
     plt.xlabel("Epoch")
     plt.ylabel("Training loss")
     # Fixed axis limits
-    plt.xlim(0, 100)      # start at 0
+    plt.xlim(0, 100)     
     plt.ylim(0.0, 0.25)
     # Force y-axis to show max 2 decimals
     plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
