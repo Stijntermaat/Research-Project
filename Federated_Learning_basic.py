@@ -12,44 +12,49 @@ import matplotlib.cm as cm
 import mlflow
 import mlflow.pytorch
 
-# CONFIGURATION
+# configuration
 STUDENT_ID = "s3777006"
 
-# Base path on SCRATCh
+# Base path on SCRATCH
 BASE_ROOT = Path(f"/scratch/{STUDENT_ID}")
 
 DATA_ROOT = BASE_ROOT / "CP-CHILD"
-DATASET = "Experiment-C"  # or B
+DATASET = os.getenv("EXPERIMENT_DATASET", "Experiment-D2")  # Default to D2
 
 DATASET_ROOT = DATA_ROOT / DATASET
 
 CLIENT_TRAIN_ROOTS = [
-    DATASET_ROOT / "client1" / "Train",
-    DATASET_ROOT / "client2" / "Train",
-    DATASET_ROOT / "client3" / "Train",
+    DATASET_ROOT / "Client1" / "Train",
+    DATASET_ROOT / "Client2" / "Train",
+    DATASET_ROOT / "Client3" / "Train",
 ]
-TEST_ROOT = DATASET_ROOT / "test"
+TEST_ROOT = DATASET_ROOT / "Test"
 
 PRETRAINED_WEIGHTS_PATH = BASE_ROOT / "pretrained_weights" / "vgg19_bn_imagenet_weights.pth"
-MLFLOW_ROOT = BASE_ROOT / "ML_Flow"
 
-# Hyperparameters
+# Experiment-specific output directory
+EXPERIMENT_NAME = os.getenv("EXPERIMENT_NAME", "E_default")
+OUTPUT_ROOT = BASE_ROOT / "experiment_outputs" / EXPERIMENT_NAME
+OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+MLFLOW_ROOT = OUTPUT_ROOT / "ML_Flow"
+
+# Hyperparameters 
 IMG_SIZE = 256
 BATCH_SIZE = 16
-LR = 0.01
+LR = float(os.getenv("EXPERIMENT_LR", "0.01"))
 MOMENTUM = 0.9
 WEIGHT_DECAY = 1e-4
-USE_PRETRAINED = True
+USE_PRETRAINED = os.getenv("EXPERIMENT_USE_PRETRAINED", "True").lower() == "true"
 MAX_SAMPLES = None  # Set to int for debugging with subset
 SEED = 42
 
 # Federated learning settings
 NUM_CLIENTS = 3
-LOCAL_EPOCHS = 2
+LOCAL_EPOCHS = int(os.getenv("EXPERIMENT_LOCAL_EPOCHS", "2"))
 GLOBAL_ROUNDS = 50
 EVAL_AFTER_ROUND = 50
 
-# REPRODUCIBILITY SETUP
+# reproducibility setup
 def setup_reproducibility(seed):
     """Ensures deterministic behavior across all random operations."""
     random.seed(seed)
@@ -80,9 +85,10 @@ print(f"Device: {device}")
 # MLflow tracking
 MLFLOW_ROOT.mkdir(parents=True, exist_ok=True)
 mlflow.set_tracking_uri(f"file:{MLFLOW_ROOT}")
-mlflow.set_experiment(f"Experiment_C_FL_{'Pretrained' if USE_PRETRAINED else 'Kaiming'}")
+experiment_description = f"{'Pretrained' if USE_PRETRAINED else 'Kaiming'}_E{LOCAL_EPOCHS}_LR{LR}"
+mlflow.set_experiment(f"{EXPERIMENT_NAME}_FL_{experiment_description}")
 
-# GRAD-CAM IMPLEMENTATION
+# Grad-CAM implementation
 class GradCAM:
     def __init__(self, model, target_layer):
         self.model = model
@@ -139,13 +145,31 @@ def make_overlay(img_tensor, cam, alpha=0.4):
     return overlay.clamp(0, 1).cpu()
 
 
-# DATA LOADING
+def denormalize_image(img_tensor):
+    """
+    De-normalize image tensor from ImageNet normalization.
+    img_tensor: normalized (3,H,W) tensor on GPU
+    returns: (3,H,W) tensor with values in [0,1] on CPU
+    """
+    device = img_tensor.device
+    mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225], device=device).view(3, 1, 1)
+    
+    img = (img_tensor * std + mean).clamp(0, 1)
+    return img.cpu()
+
+
+# Data loading with experiment-specific configurations
 transform = transforms.Compose([
     transforms.Lambda(lambda img: img.convert("RGB")),
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
 ])
+
+# Load datasets - All experiments use Experiment-D2 (modality skew)
+print(f"Running experiment: {EXPERIMENT_NAME}")
+print(f"Dataset: {DATASET}, Local Epochs: {LOCAL_EPOCHS}, Learning Rate: {LR}, Pretrained: {USE_PRETRAINED}")
 
 client_train_ds = [
     datasets.ImageFolder(str(root), transform=transform)
@@ -200,8 +224,16 @@ else:
 
     test_loader = DataLoader(test_ds, shuffle=False, **loader_kwargs)
 
+if MAX_SAMPLES:
+    test_subset = Subset(test_ds, build_balanced_subset(test_ds, POS, NEG, MAX_SAMPLES))
+    test_loader = DataLoader(test_subset, shuffle=False, **loader_kwargs)
+    print("Using test subset:", len(test_subset))
+else:
+    test_loader = DataLoader(test_ds, shuffle=False, **loader_kwargs)
 
-# Basic VGG19 GAP architecture
+print("Final client sizes:", [len(dl.dataset) for dl in client_train_loaders])
+
+# Basic VGG19 GAP architecture (same as centralized)
 class VGG19BN_GAP_Last2(nn.Module):
     def __init__(self, num_classes=2):
         super().__init__()
@@ -255,7 +287,7 @@ def count_model_parameters(model):
     """Count total trainable parameters (floats) for communication cost calculation."""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-# Weight initialization
+# Weight initialization functions (same as original)
 def load_imagenet_pretrained(model, weights_path):
     """Load pretrained ImageNet weights, excluding final block."""
     if not weights_path.exists():
@@ -327,7 +359,7 @@ else:
 
 model = model.to(device)
 
-#train one local client 
+# Training functions (same as original)
 def local_train_one_client(model, loader, criterion, optimizer, device, local_epochs: int):
     model.train()  
 
@@ -351,7 +383,6 @@ def local_train_one_client(model, loader, criterion, optimizer, device, local_ep
     avg_loss = total_loss / max(total_samples, 1)
     return avg_loss, total_samples
 
-# FedAvg alghoritm for weights and bias
 @torch.no_grad()
 def fedavg(global_model, client_states, client_sizes):    
     total = float(sum(client_sizes))
@@ -370,16 +401,16 @@ def fedavg(global_model, client_states, client_sizes):
 
     global_model.load_state_dict(global_state, strict=True)
 
-
-#training federated loop
+# Training federated loop
 criterion = nn.CrossEntropyLoss()
 
-run_name = f"{DATASET}_FL"
+run_name = f"{EXPERIMENT_NAME}_FL"
 print(f"\nStarting training: {run_name}\n")
 
 with mlflow.start_run(run_name=run_name):
 
     mlflow.log_params({
+        "experiment": EXPERIMENT_NAME,
         "dataset": DATASET,
         "img_size": IMG_SIZE,
         "batch_size": BATCH_SIZE,
@@ -452,7 +483,7 @@ with mlflow.start_run(run_name=run_name):
     # log final aggregated global model
     mlflow.pytorch.log_model(model, artifact_path="model")
 
-#evaluation after last round
+    # Evaluation after last round
     if EVAL_AFTER_ROUND == GLOBAL_ROUNDS:
         print("\nEvaluating...")
         TP = TN = FP = FN = 0
@@ -520,7 +551,7 @@ with mlflow.start_run(run_name=run_name):
         print("\nGenerating Grad-CAM examples...")
 
         gradcam = GradCAM(model, model.layer16)
-        outdir = Path(f"/scratch/{STUDENT_ID}/gradcam_outputs/Experiment_FL") / DATASET
+        outdir = OUTPUT_ROOT / "gradcam_outputs"
         outdir.mkdir(parents=True, exist_ok=True)
 
         labels = test_ds.classes
@@ -533,13 +564,23 @@ with mlflow.start_run(run_name=run_name):
                 x_in = img_dev.unsqueeze(0)
 
                 cam = gradcam.generate(x_in, pred_lbl)
-                overlay = make_overlay(img_dev, cam)
+                
+                # Get original (de-normalized) image
+                original = denormalize_image(img_dev)  # (3,H,W) on CPU
+                
+                # Build overlay
+                overlay = make_overlay(img_dev, cam)  # (3,H,W) on CPU
+                
+                # Create side-by-side image: [original | overlay]
+                combined = torch.cat([original, overlay], dim=2)  # Concatenate along width
 
                 fname = outdir / f"{group}_true{labels[true_lbl]}_pred{labels[pred_lbl]}_{counter}.png"
-                save_image(overlay, fname)
+                save_image(combined, fname)
                 counter += 1
 
         mlflow.log_artifacts(str(outdir), artifact_path="gradcam")
         print(f"Grad-CAM outputs saved to: {outdir}")
 
-print(f"\nTraining complete. MLflow tracking at: {MLFLOW_ROOT}")
+print(f"\nTraining complete for {EXPERIMENT_NAME}")
+print(f"MLflow tracking at: {MLFLOW_ROOT}")
+print(f"Output directory: {OUTPUT_ROOT}")
