@@ -8,13 +8,13 @@ This repository implements polyp detection using VGG19 with Global Average Pooli
 
 ## File Structure
 
-├── VGG19GAP_basic.py              # Centralized training (Experiments A, B)
-├── Federated_Learning_basic.py    # Federated learning (Experiments C, D, E, F and G)
-├── Make_M1.py                      # Generate M1 modality shift dataset
-├── Make_M2.py                      # Generate M2 modality shift dataset
-├── Create_graph_fromcsv.py        # Plot centralized training curves
-├── plot_fl_losses.py              # Plot federated training curves
-└── README.md                       # This file
+1. VGG19GAP_basic.py              # Centralized training (Experiments A, B)
+2. Federated_Learning_basic.py    # Federated learning (Experiments C, D, E, F and G)
+3. Make_M1.py                      # Generate M1 modality shift dataset
+4. Make_M2.py                      # Generate M2 modality shift dataset
+5. Create_graph_fromcsv.py        # Plot centralized learning training loss
+6. plot_fl_losses.py              # Plot federated learning training loss
+7. README.md                       # This file
 
 
 
@@ -42,24 +42,24 @@ This repository implements polyp detection using VGG19 with Global Average Pooli
 
 
 ## Dataset Structure
-`
-/scratch/s3777006/CP-CHILD/
-├── Experiment-centralized_learning/
-│   ├── Train/{Polyp, Non-Polyp}/
-│   └── Test/{Polyp, Non-Polyp}/
-├── Experiment-federated_learning/
-│   ├── Client1/Train/{Polyp, Non-Polyp}
-│   ├── Client2/Train/{Polyp, Non-Polyp}
-│   ├── Client3/Train/{Polyp, Non-Polyp}
-│   └── Test/{Polyp, Non-Polyp}
-└── Experiment partitions according the file structure
 
+/scratch/s3777006/CP-CHILD/
+   Experiment-centralized_learning/
+       Train/{Polyp, Non-Polyp}/
+       Test/{Polyp, Non-Polyp}/
+  Experiment-federated_learning/
+       Client1/Train/{Polyp, Non-Polyp}
+       Client2/Train/{Polyp, Non-Polyp}
+       Client3/Train/{Polyp, Non-Polyp}
+       Test/{Polyp, Non-Polyp}
+   Experiment partitions according the file structure
+......................
 
 ## Outputs
 
 /scratch/s3777006/
-├── ML_Flow/                    # MLflow tracking data
-└── gradcam_outputs/            # Grad-CAM visualizations
+  ML_Flow/                    # MLflow tracking data
+  gradcam_outputs/            # Grad-CAM visualizations
 
 
 ## Notes
