@@ -12,7 +12,7 @@ import matplotlib.cm as cm
 import mlflow
 import mlflow.pytorch
 
-# CONFIGURATION
+# configuration
 STUDENT_ID = "s3777006"
 
 # Base path on SCRATCH for runtime
@@ -36,7 +36,7 @@ MAX_SAMPLES = None  # Set to int for debugging with subset
 SEED = 42
 
 
-# REPRODUCIBILITY SETUP
+# reproducibility setup
 def setup_reproducibility(seed):
     """Ensures deterministic behavior across all random operations."""
     random.seed(seed)
@@ -70,7 +70,7 @@ mlflow.set_tracking_uri(f"file:{MLFLOW_ROOT}")
 mlflow.set_experiment(f"Experiment_A_{'Pretrained' if USE_PRETRAINED else 'Kaiming'}")
 
 
-# GRAD-CAM IMPLEMENTATION
+# Grad-CAM implementation
 class GradCAM:
     def __init__(self, model, target_layer):
         self.model = model
@@ -126,7 +126,7 @@ def make_overlay(img_tensor, cam, alpha=0.4):
     overlay = (1 - alpha) * img + alpha * heatmap
     return overlay.clamp(0, 1).cpu()
 
-# DATA LOADING
+# Data loading
 DATASET_ROOT = DATA_ROOT / DATASET
 TRAIN_ROOT = DATASET_ROOT / "Train"
 TEST_ROOT = DATASET_ROOT / "Test"
@@ -229,7 +229,7 @@ class VGG19BN_GAP_Last2(nn.Module):
         return torch.flatten(x, 1)
 
 
-# WEIGHT INITIALIZATION
+# Weight initiliaztion
 def load_imagenet_pretrained(model, weights_path):
     """Load pretrained ImageNet weights, excluding final block."""
     if not weights_path.exists():
@@ -300,7 +300,8 @@ else:
     print("Using full Kaiming initialization (no pretraining)")
 
 model = model.to(device)
-# TRAINING & EVALUATION
+
+# Training and evaluation
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(
     model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY
