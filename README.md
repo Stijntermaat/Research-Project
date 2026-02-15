@@ -68,6 +68,7 @@ This repository implements polyp detection using VGG19 with Global Average Pooli
 ## Outputs
 
 /scratch/s3777006/
+
   ML_Flow/                    # MLflow tracking data
   gradcam_outputs/            # Grad-CAM visualizations
 
