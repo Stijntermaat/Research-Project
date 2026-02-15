@@ -3,9 +3,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from matplotlib.ticker import FormatStrFormatter
 
-# ===============================
-# Global plot style (set once)
-# ===============================
+
 plt.rcParams.update({
     "figure.figsize": (6, 4),
     "font.size": 12,
